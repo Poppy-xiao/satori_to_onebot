@@ -21,7 +21,7 @@ def _init_logger(log_file, log_level, maxBytes=5 * 1024 * 1024, backupCount=5):
 
     if LOG_TO_FILE:
         file_handler = RotatingFileHandler(
-            log_file, maxBytes=maxBytes, backupCount=backupCount
+            log_file, maxBytes=maxBytes, backupCount=backupCount, encoding="utf-8"
         )
         file_handler.setFormatter(formatter)
         logger.addHandler(file_handler)

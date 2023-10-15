@@ -57,6 +57,7 @@ class WebSocketServer:
             while True:
                 try:
                     message = await websocket.recv()
+                    self.logger.info(message)
                     message = json.loads(message)
                     await self.queue_hoshino.put((ws_server, message))  # 保存ws_server信息
                 except Exception:
@@ -68,6 +69,7 @@ class WebSocketServer:
         while True:
             try:
                 message = await self.queue_satori.get()
+                self.logger.info(message)
                 # 使用 EventProcessor 处理消息
                 formatted_message = await EventProcessor().process(message)
                 # 如果消息有效，发送到bot

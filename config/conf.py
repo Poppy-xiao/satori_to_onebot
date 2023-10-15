@@ -35,4 +35,4 @@ LOG_TO_FILE = True  # False
 LOG_TO_CONSOLE = True
 # Level of output log
 # FATAL / ERROR / WARN / INFO / DEBUG
-LOG_LEVEL = logging.DEBUG
+LOG_LEVEL = logging.INFO
