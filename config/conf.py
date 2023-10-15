@@ -30,7 +30,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOG_FILE_NAME = "adapter.log"
 LOG_FILE_PATH = os.path.join(BASE_DIR, LOG_FILE_NAME)
 # Switch to output log to file
-LOG_TO_FILE = True  # False
+LOG_TO_FILE = False  # False
 # Switch to output log to console
 LOG_TO_CONSOLE = True
 # Level of output log
