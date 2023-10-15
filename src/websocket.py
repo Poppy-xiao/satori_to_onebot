@@ -10,7 +10,7 @@ class WebSocketServer:
     def __init__(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        self.connections = {}
+        self.connections = {ws: {} for ws in conf.ws_servers}
         self.queue_satori = asyncio.Queue(loop=self.loop)
         self.queue_hoshino = asyncio.Queue(loop=self.loop)
         self.logger = get_logger()
@@ -51,17 +51,17 @@ class WebSocketServer:
             await asyncio.gather(heartbeat_task, receive_messages_task, process_satori_task, process_hoshino_task)
 
 
-    async def forward_receive_messages(self, self_id):
-        if self_id in self.connections:
-            websocket = self.connections[self_id]
-            message = None
+    async def forward_receive_messages(self, ws_server, self_id):
+        if self_id in self.connections[ws_server]:
+            websocket = self.connections[ws_server][self_id]
             while True:
                 try:
                     message = await websocket.recv()
                     message = json.loads(message)
-                    await self.queue_hoshino.put(message)  # 放入队列
-                except Exception as e:
-                    print(f'Error {traceback.format_exc()}')
+                    await self.queue_hoshino.put((ws_server, message))  # 保存ws_server信息
+                except Exception:
+                    msg = traceback.format_exc()
+                    self.logger.error(f"[forward_receive_messages]{msg}")
                     await asyncio.sleep(5)  # wait before retrying
 
     async def process_queue_satori_and_send(self):
@@ -70,46 +70,48 @@ class WebSocketServer:
                 message = await self.queue_satori.get()
                 # 使用 EventProcessor 处理消息
                 formatted_message = await EventProcessor().process(message)
-                # 如果消息有效，发送到 hoshino
+                # 如果消息有效，发送到bot
                 if formatted_message:
                     self_id = message['body']['self_id']
-                    await self.send_to_hoshino(self_id, formatted_message) 
+                    await self.send_to_all_bot(self_id, formatted_message) 
             except:
                 msg = traceback.format_exc()
-                self.logger.error(f"[send_to_hoshino]{msg}")
+                self.logger.error(f"[process_queue_satori_and_send]{msg}")
 
 
     async def process_queue_hoshino_and_send(self, websocket):
         while True:
             try:
-                message = await self.queue_hoshino.get()
+                ws_server, message = await self.queue_hoshino.get()
                 formatted_message = MessageHelper.format_hoshino_message(message)
                 # 发送到 satori
                 channel_id = message["params"]["group_id"]
                 #TODO
-                # 处理星乃消息事件未完成
+                # 处理bot消息事件未完成
                 await MessageHelper.send_group_message(channel_id, formatted_message)
             except:
                 msg = traceback.format_exc()
-                self.logger.error(f"[send_to_hoshino]{msg}")
+                self.logger.error(f"[process_queue_hoshino_and_send]{msg}")
 
 
-    async def send_to_hoshino(self, self_id, onebot_message):
-        if self_id not in self.connections or self.connections[self_id].closed:
-            uri = f"ws://{conf.hoshino}/ws/"
+    async def send_to_all_bot(self, self_id, onebot_message):
+        for ws_server in conf.ws_servers:
+            await self.send_to_bot(ws_server, self_id, onebot_message)
+
+    async def send_to_bot(self, ws_server, self_id, onebot_message):
+        if self_id not in self.connections[ws_server] or self.connections[ws_server][self_id].closed:
             headers = {
                 "Upgrade": "websocket",
                 "X-Client-Role": "Universal",
                 "X-Self-ID": str(self_id)
             }
-            forward_websocket = await websockets.connect(uri, extra_headers=headers)
-            self.connections[self_id] = forward_websocket
-            # 启动一个新的任务来接收Hoshino的消息
-            asyncio.create_task(self.forward_receive_messages(self_id))
+            forward_websocket = await websockets.connect(ws_server, extra_headers=headers)
+            self.connections[ws_server][self_id] = forward_websocket
+            asyncio.create_task(self.forward_receive_messages(ws_server, self_id))
 
         try:
-            await self.connections[self_id].send(json.dumps(onebot_message))
+            await self.connections[ws_server][self_id].send(json.dumps(onebot_message))
         except:
             msg = traceback.format_exc()
-            self.logger.error(f"[send_to_hoshino]{msg}")
+            self.logger.error(f"[send_to_bot]{msg}")
 

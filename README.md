@@ -2,8 +2,11 @@
 
 事件的处理还没完成，只搭建了框架，现在能够把文字消息转发完成了（应该不太完美）
 
+## 更新：
+对多个bot的支持，需要对多个bot转发的时候把config.py的ws_servers数组里增加新的ws地址，就会自动给这几个地址转发
+
 ## 使用方法：
-1. 修改config文件夹下的config.py，将hoshino，satori和token填写成自己的
+1. 修改config文件夹下的config.py，将ws_servers，satori和token填写成自己的
 2. 执行 python3 run.py
 
  可选：
