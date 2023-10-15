@@ -11,8 +11,8 @@ class WebSocketServer:
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.connections = {ws: {} for ws in conf.ws_servers}
-        self.queue_satori = asyncio.Queue(loop=self.loop)
-        self.queue_hoshino = asyncio.Queue(loop=self.loop)
+        self.queue_satori = asyncio.Queue()
+        self.queue_hoshino = asyncio.Queue()
         self.logger = get_logger()
 
     def run(self):
