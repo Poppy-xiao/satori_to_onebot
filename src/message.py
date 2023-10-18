@@ -6,7 +6,8 @@ class MessageHelper:
     @staticmethod
     async def send_group_message(channel_id, content):
         url = f"http://{conf.satori}/v1/message.create"
-        payload = {'channel_id': channel_id, 'content': content}
+        payload = {'channel_id': channel_id}
+        payload.update(content)
         headers = conf.headers
         requests.post(url, json=payload, headers=headers)
 
@@ -23,12 +24,14 @@ class MessageHelper:
     @staticmethod
     def format_hoshino_message(message):
         segments = message["params"]["message"]
-        formatted_message = ""
-
+        formatted_message = {}
+        xml_content = ""
         for segment in segments:
             if segment["type"] == "text":
-                formatted_message += segment["data"]["text"]
-
+                xml_content += f'<text content="{segment["data"]["text"]}" /> '
+            elif segment["type"] == "image":
+                xml_content += f'<img src="{segment["data"]["file"]}" /> '
+        formatted_message = {"content": xml_content.strip()}
         return formatted_message
 
     @staticmethod
